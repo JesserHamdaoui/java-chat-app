@@ -5,6 +5,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Scanner;
+import io.github.cdimascio.dotenv.Dotenv;
 
 public class Client {
     private Socket socket;
@@ -13,9 +14,12 @@ public class Client {
 
     private String username;
 
-    static final String DB_URL = "jdbc:mariadb://localhost:3307/chat_project";
-    static final String DB_USER = "root";
-    static final String DB_PASS = "ahla";
+    static final Dotenv dotenv = Dotenv.load();
+
+    static final String DB_URL = dotenv.get("DB_URL");
+    static final String DB_USER = dotenv.get("DB_USER");
+    static final String DB_PASS = dotenv.get("DB_PASS");
+
 
     public Client(Socket socket, String username) {
         try {
