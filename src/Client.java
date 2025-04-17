@@ -1,5 +1,9 @@
 import java.io.*;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Scanner;
 
 public class Client {
@@ -9,6 +13,10 @@ public class Client {
 
     private String username;
 
+    static final String DB_URL = "jdbc:mariadb://localhost:3307/chat_project";
+    static final String DB_USER = "root";
+    static final String DB_PASS = "ahla";
+
     public Client(Socket socket, String username) {
         try {
             this.socket = socket;
@@ -17,6 +25,50 @@ public class Client {
             this.username = username;
         } catch (IOException e) {
             closeEverything(socket, bufferedWriter, bufferedReader);
+        }
+    }
+
+    public static Client login(String username, String password) {
+        String query = "SELECT * FROM users WHERE username = ? AND password = ?";
+
+        try {
+            Class.forName("org.mariadb.jdbc.Driver");
+
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+
+            ResultSet rs = stmt.executeQuery();
+            Scanner scanner = new Scanner(System.in);
+            while(!(rs.next())) {
+                System.out.println("❌ Invalid username or password. \n Enter your credentials again");
+                System.out.print("Enter username: ");
+                username = scanner.nextLine();
+
+                System.out.print("Enter password: ");
+                password = scanner.nextLine();
+
+                stmt = conn.prepareStatement(query);
+                stmt.setString(1, username);
+                stmt.setString(2, password);
+
+                rs = stmt.executeQuery();
+            }
+            System.out.println("✅ Login successful! Welcome, " + rs.getString("username") + "!");
+            Socket socket = new Socket("localhost", 1234);
+            Client client = new Client(socket, username);
+
+            rs.close();
+            stmt.close();
+            conn.close();
+
+            return client;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
@@ -77,11 +129,19 @@ public class Client {
 
     public static void main(String[] args) throws IOException {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter your username for the group chat");
+
+        System.out.print("Enter username: ");
         String username = scanner.nextLine();
-        Socket socket = new Socket("localhost", 1234);
-        Client client = new Client(socket, username);
-        client.listenForMessage();
-        client.sendMessage();
+
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        Client client = login(username, password);
+
+        if(client != null) {
+            client.listenForMessage();
+            client.sendMessage();
+        }
+
     }
 }
