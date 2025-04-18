@@ -20,6 +20,8 @@ public class Client {
     static final String DB_USER = dotenv.get("DB_USER");
     static final String DB_PASS = dotenv.get("DB_PASS");
 
+    static final String SERVER_URL = dotenv.get("SERVER_URL");
+
 
     public Client(Socket socket, String username) {
         try {
@@ -61,7 +63,7 @@ public class Client {
                 rs = stmt.executeQuery();
             }
             System.out.println("✅ Login successful! Welcome, " + rs.getString("username") + "!");
-            Socket socket = new Socket("localhost", 1234);
+            Socket socket = new Socket(SERVER_URL, 1234);
             Client client = new Client(socket, username);
 
             rs.close();
