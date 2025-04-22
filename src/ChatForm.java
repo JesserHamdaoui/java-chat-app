@@ -4,22 +4,27 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class ChatForm extends JFrame {
+public class ChatForm extends JFrame implements Client.MessageListener {
     private JPanel chatPanel;
     private JTextField inputField;
     private JButton sendButton;
     private JScrollPane scrollPane;
-    private JLabel titleLabel;  // Label for the "Server Chat" title
-    private String userName;  // Store the user's name
+    private JLabel titleLabel;
+    private final Client client;
+    private final String userName;
 
-    public ChatForm(String userName) {
+    public ChatForm(Client client, String userName) {
+        this.client = client;
         this.userName = userName;
+        initializeUI();
+    }
+
+    private void initializeUI() {
         setTitle("Chat Interface");
         setSize(450, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
-
 
         titleLabel = new JLabel("Server Chat - " + userName);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
@@ -34,12 +39,9 @@ public class ChatForm extends JFrame {
         scrollPane = new JScrollPane(chatPanel);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         inputField = new JTextField();
         inputField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        inputField.setPreferredSize(new Dimension(300, 40));
-        inputField.setBackground(new Color(240, 240, 240));
         inputField.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         sendButton = new JButton("Send");
@@ -47,16 +49,9 @@ public class ChatForm extends JFrame {
         sendButton.setBackground(new Color(0, 102, 204));
         sendButton.setForeground(Color.WHITE);
         sendButton.setFocusPainted(false);
-        sendButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-
-        ImageIcon sendIcon = new ImageIcon("C:\\STUFF\\Sophomore\\CS202\\java-chat-app\\sendLogo.png");
-        Image img = sendIcon.getImage();  // Transform the image
-        Image newImg = img.getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-        sendButton.setIcon(new ImageIcon(newImg));
 
         JPanel inputPanel = new JPanel(new BorderLayout(10, 0));
         inputPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        inputPanel.setBackground(Color.WHITE);
         inputPanel.add(inputField, BorderLayout.CENTER);
         inputPanel.add(sendButton, BorderLayout.EAST);
 
@@ -67,16 +62,23 @@ public class ChatForm extends JFrame {
 
         sendButton.addActionListener(e -> sendMessage());
         inputField.addActionListener(e -> sendMessage());
-
         setVisible(true);
     }
 
     private void sendMessage() {
         String message = inputField.getText().trim();
         if (!message.isEmpty()) {
-            addMessageBubble(userName, message);
+            client.sendMessage(message);
             inputField.setText("");
         }
+    }
+
+    @Override
+    public void onMessageReceived(String fullMessage) {
+        String[] parts = fullMessage.split(": ", 2);
+        String sender = parts[0];
+        String content = parts.length > 1 ? parts[1] : "";
+        addMessageBubble(sender, content);
     }
 
     private void addMessageBubble(String sender, String message) {
@@ -86,47 +88,29 @@ public class ChatForm extends JFrame {
         text.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         text.setForeground(Color.BLACK);
 
-        int lineCount = (int) Math.ceil((double) message.length() / 30);  // Rough estimate for line breaks
-        int bubbleHeight = 60 + lineCount * 20;  // Increase height for each additional line of text
-
-        JLabel senderAndTimestamp = new JLabel("<html><div style='width:200px;'><strong>" + sender + " - " + timestamp + "</strong></div></html>");
-        senderAndTimestamp.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        senderAndTimestamp.setForeground(new Color(100, 100, 100));
+        JLabel senderLabel = new JLabel("<html><strong>" + sender + "</strong> <small>(" + timestamp + ")</small></html>");
+        senderLabel.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        senderLabel.setForeground(new Color(100, 100, 100));
 
         JPanel bubble = new JPanel(new BorderLayout());
-        bubble.setBackground(new Color(220, 220, 220));
-        bubble.setBorder(new EmptyBorder(8, 12, 8, 12)); // Padding inside the bubble
+        bubble.setBackground(sender.equals(userName) ? new Color(204, 229, 255) : new Color(220, 220, 220));
+        bubble.setBorder(new EmptyBorder(8, 12, 8, 12));
+        bubble.add(senderLabel, BorderLayout.NORTH);
         bubble.add(text, BorderLayout.CENTER);
-        bubble.setOpaque(true);
-
-        bubble.setPreferredSize(new Dimension(240, bubbleHeight));  // Adjust height to accommodate multiple lines
-        bubble.setMaximumSize(new Dimension(240, bubbleHeight));   // Prevent resizing beyond this size
 
         JPanel wrapper = new JPanel();
-        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS)); // Stack message text and sender info vertically
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
         wrapper.setBackground(Color.WHITE);
         wrapper.add(bubble);
-        wrapper.add(senderAndTimestamp); // Add sender's name and timestamp below the message bubble
+        wrapper.add(Box.createVerticalStrut(8));
 
         chatPanel.add(wrapper);
-
-        chatPanel.add(Box.createVerticalStrut(4));  // Adjust this value for desired spacing between messages
-
         chatPanel.revalidate();
         chatPanel.repaint();
 
         SwingUtilities.invokeLater(() -> {
-            JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
-            verticalScrollBar.setValue(verticalScrollBar.getMaximum()); // Scrolls to the bottom
+            JScrollBar vertical = scrollPane.getVerticalScrollBar();
+            vertical.setValue(vertical.getMaximum());
         });
-    }
-
-
-
-
-
-    public static void main(String[] args) {
-        // Pass the user's name to the constructor
-        SwingUtilities.invokeLater(() -> new ChatForm("User"));
     }
 }
