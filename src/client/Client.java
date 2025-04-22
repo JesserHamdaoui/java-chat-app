@@ -1,3 +1,5 @@
+package client;
+
 import java.io.*;
 import java.net.Socket;
 import java.sql.Connection;
@@ -5,9 +7,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Scanner;
-import io.github.cdimascio.dotenv.Dotenv;
 
-import javax.swing.*;
+import gui.ChatForm;
+import io.github.cdimascio.dotenv.Dotenv;
 
 public class Client {
     private Socket socket;
@@ -26,23 +28,7 @@ public class Client {
         void onMessageReceived(String message);
     }
 
-    public Client(Socket socket, String username) {
-        try {
-            this.socket = socket;
-            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.username = username;
-
-            // Send username immediately
-            bufferedWriter.write(username);
-            bufferedWriter.newLine();
-            bufferedWriter.flush();
-        } catch (IOException e) {
-            closeEverything(socket, bufferedWriter, bufferedReader);
-        }
-    }
-
-    public static Client login(String username, String password) {
+    public Client(String username, String password) {
         String query = "SELECT * FROM users WHERE username = ? AND password = ?";
         try {
             Class.forName("org.mariadb.jdbc.Driver");
@@ -67,16 +53,22 @@ public class Client {
             }
 
             System.out.println("✅ Login successful! Launching chat...");
-            Socket socket = new Socket(SERVER_URL, 1234);
-            Client client = new Client(socket, username);
+            this.socket = new Socket(SERVER_URL, 1234);
+            this.username = username;
+            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            bufferedWriter.write(this.username);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
 
             rs.close();
             stmt.close();
             conn.close();
-            return client;
+        } catch (IOException e) {
+            closeEverything(socket, bufferedWriter, bufferedReader);
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
         }
     }
 
@@ -97,8 +89,7 @@ public class Client {
                 try {
                     messageFromGroupChat = bufferedReader.readLine();
                     if (messageFromGroupChat != null && messageListener != null) {
-                        String finalMessageFromGroupChat = messageFromGroupChat;
-                        SwingUtilities.invokeLater(() -> messageListener.onMessageReceived(finalMessageFromGroupChat));
+                        messageListener.onMessageReceived(messageFromGroupChat);
                     }
                 } catch (IOException e) {
                     closeEverything(socket, bufferedWriter, bufferedReader);
@@ -119,23 +110,6 @@ public class Client {
             if (socket != null) socket.close();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("Enter username: ");
-        String username = scanner.nextLine();
-        System.out.print("Enter password: ");
-        String password = scanner.nextLine();
-
-        Client client = login(username, password);
-        if (client != null) {
-            SwingUtilities.invokeLater(() -> {
-                ChatForm chatForm = new ChatForm(client, username);
-                client.setMessageListener(chatForm);
-                client.listenForMessage();
-            });
         }
     }
 }

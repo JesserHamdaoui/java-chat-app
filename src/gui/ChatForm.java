@@ -1,3 +1,7 @@
+package gui;
+
+import client.Client;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -26,7 +30,7 @@ public class ChatForm extends JFrame implements Client.MessageListener {
         setLocationRelativeTo(null);
         setResizable(false);
 
-        titleLabel = new JLabel("Server Chat - " + userName);
+        titleLabel = new JLabel("server.Server Chat - " + userName);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         titleLabel.setForeground(new Color(0, 102, 204));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -82,35 +86,46 @@ public class ChatForm extends JFrame implements Client.MessageListener {
     }
 
     private void addMessageBubble(String sender, String message) {
-        String timestamp = new SimpleDateFormat("HH:mm:ss").format(new Date());
+        String timestamp = new SimpleDateFormat("HH:mm").format(new Date());
+        boolean isCurrentUser = sender.equals(userName);
 
-        JLabel text = new JLabel("<html><div style='width:200px; word-wrap: break-word;'>" + message + "</div></html>");
-        text.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        text.setForeground(Color.BLACK);
+        // Bubble styling
+        JPanel bubble = new JPanel();
+        bubble.setLayout(new BoxLayout(bubble, BoxLayout.Y_AXIS));
+        bubble.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        bubble.setBackground(isCurrentUser ? new Color(0, 102, 204) : new Color(220, 220, 220));
 
-        JLabel senderLabel = new JLabel("<html><strong>" + sender + "</strong> <small>(" + timestamp + ")</small></html>");
-        senderLabel.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        senderLabel.setForeground(new Color(100, 100, 100));
+        // Message text
+        JLabel textLabel = new JLabel("<html><div style='width: 200px; color: " +
+                (isCurrentUser ? "white" : "black") + ";'>" + message + "</div></html>");
+        textLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        JPanel bubble = new JPanel(new BorderLayout());
-        bubble.setBackground(sender.equals(userName) ? new Color(204, 229, 255) : new Color(220, 220, 220));
-        bubble.setBorder(new EmptyBorder(8, 12, 8, 12));
-        bubble.add(senderLabel, BorderLayout.NORTH);
-        bubble.add(text, BorderLayout.CENTER);
+        // Sender and timestamp
+        JLabel metaLabel = new JLabel(
+                (isCurrentUser ? "You" : sender) + " • " + timestamp
+        );
+        metaLabel.setFont(new Font("Segoe UI", Font.ITALIC, 10));
+        metaLabel.setForeground(isCurrentUser ? new Color(200, 200, 255) : new Color(100, 100, 100));
 
-        JPanel wrapper = new JPanel();
-        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        bubble.add(metaLabel);
+        bubble.add(Box.createVerticalStrut(2));
+        bubble.add(textLabel);
+
+        // Align bubble to right/left
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBorder(new EmptyBorder(5, 5, 5, 5));
         wrapper.setBackground(Color.WHITE);
-        wrapper.add(bubble);
-        wrapper.add(Box.createVerticalStrut(8));
+        wrapper.add(bubble, isCurrentUser ? BorderLayout.EAST : BorderLayout.WEST);
 
         chatPanel.add(wrapper);
         chatPanel.revalidate();
         chatPanel.repaint();
 
+        // Auto-scroll
         SwingUtilities.invokeLater(() -> {
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
     }
+
 }

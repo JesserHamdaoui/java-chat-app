@@ -1,3 +1,5 @@
+package client;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -33,7 +35,7 @@ public class ClientHandler implements Runnable {
         while(socket.isConnected()) {
             try {
                 messageFromClient = bufferedReader.readLine();
-                broadcastMessage(messageFromClient);
+                broadcastMessage(clientUsername + ": " + messageFromClient);
             } catch (IOException e) {
                 closeEverything(socket, bufferedWriter, bufferedReader);
                 break;
@@ -44,11 +46,9 @@ public class ClientHandler implements Runnable {
     public void broadcastMessage(String messageToSend) {
         for(ClientHandler clientHandler: clientHandlers) {
             try {
-                if(!clientHandler.clientUsername.equals(clientUsername)) {
-                    clientHandler.bufferedWriter.write(messageToSend);
-                    clientHandler.bufferedWriter.newLine();
-                    clientHandler.bufferedWriter.flush();
-                }
+                clientHandler.bufferedWriter.write(messageToSend);
+                clientHandler.bufferedWriter.newLine();
+                clientHandler.bufferedWriter.flush();
             } catch (IOException e) {
                 closeEverything(socket, bufferedWriter, bufferedReader);
             }

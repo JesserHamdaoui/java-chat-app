@@ -1,3 +1,7 @@
+package server;
+
+import client.ClientHandler;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -11,7 +15,7 @@ public class Server {
     }
 
     public void startServer() {
-        System.out.println("Server started. Waiting for clients...");
+        System.out.println("server.Server started. Waiting for clients...");
         try {
             while (!serverSocket.isClosed()) {
                 Socket socket = serverSocket.accept();
@@ -22,7 +26,7 @@ public class Server {
                 thread.start();
             }
         } catch (IOException e) {
-            System.out.println("Server error: " + e.getMessage());
+            System.out.println("server.Server error: " + e.getMessage());
         } finally {
             closeServerSocket();
         }
@@ -32,7 +36,7 @@ public class Server {
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
-                System.out.println("Server socket closed.");
+                System.out.println("server.Server socket closed.");
             }
         } catch (IOException e) {
             System.out.println("Error while closing server socket: " + e.getMessage());
