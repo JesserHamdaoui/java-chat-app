@@ -5,6 +5,7 @@ import client.Client;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -30,7 +31,7 @@ public class ChatForm extends JFrame implements Client.MessageListener {
         setLocationRelativeTo(null);
         setResizable(false);
 
-        titleLabel = new JLabel("server.Server Chat - " + userName);
+        titleLabel = new JLabel("Server Chat - " + userName);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         titleLabel.setForeground(new Color(0, 102, 204));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -72,22 +73,28 @@ public class ChatForm extends JFrame implements Client.MessageListener {
     private void sendMessage() {
         String message = inputField.getText().trim();
         if (!message.isEmpty()) {
-            client.sendMessage(message);
-            inputField.setText("");
+            try {
+                client.sendMessage(message);
+                inputField.setText("");
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Failed to send message");
+            }
         }
     }
 
     @Override
     public void onMessageReceived(String fullMessage) {
-        String[] parts = fullMessage.split(": ", 2);
-        String sender = parts[0];
-        String content = parts.length > 1 ? parts[1] : "";
-        addMessageBubble(sender, content);
+        SwingUtilities.invokeLater(() -> {
+            String[] parts = fullMessage.split(": ", 2);
+            String sender = parts[0];
+            String content = parts.length > 1 ? parts[1] : "";
+            addMessageBubble(sender, content);
+        });
     }
 
     private void addMessageBubble(String sender, String message) {
         String timestamp = new SimpleDateFormat("HH:mm").format(new Date());
-        boolean isCurrentUser = sender.equals(userName);
+        boolean isCurrentUser = sender.equals(userName) || sender.equals("You");
 
         // Bubble styling
         JPanel bubble = new JPanel();
@@ -127,5 +134,4 @@ public class ChatForm extends JFrame implements Client.MessageListener {
             vertical.setValue(vertical.getMaximum());
         });
     }
-
 }

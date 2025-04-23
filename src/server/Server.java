@@ -1,21 +1,19 @@
 package server;
 
-import client.ClientHandler;
-
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Server {
     private ServerSocket serverSocket;
+    private static final int PORT = 1234;
 
     public Server(ServerSocket serverSocket) {
         this.serverSocket = serverSocket;
     }
 
     public void startServer() {
-        System.out.println("server.Server started. Waiting for clients...");
+        System.out.println("Server started. Waiting for clients...");
         try {
             while (!serverSocket.isClosed()) {
                 Socket socket = serverSocket.accept();
@@ -26,7 +24,7 @@ public class Server {
                 thread.start();
             }
         } catch (IOException e) {
-            System.out.println("server.Server error: " + e.getMessage());
+            System.out.println("Server error: " + e.getMessage());
         } finally {
             closeServerSocket();
         }
@@ -36,7 +34,7 @@ public class Server {
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
-                System.out.println("server.Server socket closed.");
+                System.out.println("Server socket closed.");
             }
         } catch (IOException e) {
             System.out.println("Error while closing server socket: " + e.getMessage());
@@ -44,12 +42,18 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        try {
-            ServerSocket serverSocket = new ServerSocket(1234, 50, InetAddress.getByName("0.0.0.0"));
-            Server server = new Server(serverSocket);
-            server.startServer();
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("Server started on port " + PORT);
+
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("New connection: " + clientSocket.getInetAddress());
+
+                ClientHandler clientHandler = new ClientHandler(clientSocket);
+                new Thread(clientHandler).start();
+            }
         } catch (IOException e) {
-            System.out.println("Failed to start server: " + e.getMessage());
+            System.err.println("Server error: " + e.getMessage());
         }
     }
 }
