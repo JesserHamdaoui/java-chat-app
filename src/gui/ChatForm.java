@@ -4,7 +4,9 @@ import client.Client;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -30,7 +32,7 @@ public class ChatForm extends JFrame implements Client.MessageListener {
         setLocationRelativeTo(null);
         setResizable(false);
 
-        titleLabel = new JLabel("server.Server Chat - " + userName);
+        titleLabel = new JLabel("Server Chat - " + userName);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         titleLabel.setForeground(new Color(0, 102, 204));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -43,9 +45,12 @@ public class ChatForm extends JFrame implements Client.MessageListener {
         scrollPane = new JScrollPane(chatPanel);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         inputField = new JTextField();
         inputField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        inputField.setPreferredSize(new Dimension(300, 40));
+        inputField.setBackground(new Color(240, 240, 240));
         inputField.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         sendButton = new JButton("Send");
@@ -53,10 +58,25 @@ public class ChatForm extends JFrame implements Client.MessageListener {
         sendButton.setBackground(new Color(0, 102, 204));
         sendButton.setForeground(Color.WHITE);
         sendButton.setFocusPainted(false);
+        sendButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+        ImageIcon sendIcon = new ImageIcon("C:\\STUFF\\Sophomore\\CS202\\java-chat-app\\sendLogo.png");
+        Image img = sendIcon.getImage();  // Transform the image
+        Image newImg = img.getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+        sendButton.setIcon(new ImageIcon(newImg));
+
+        JButton attachButton = new JButton("📎");
+        attachButton.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        attachButton.setBackground(Color.WHITE);
+        attachButton.setFocusPainted(false);
+        attachButton.setPreferredSize(new Dimension(50, 40));
+        attachButton.addActionListener(e -> showAttachDialog());
 
         JPanel inputPanel = new JPanel(new BorderLayout(10, 0));
         inputPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        inputPanel.setBackground(Color.WHITE);
         inputPanel.add(inputField, BorderLayout.CENTER);
+        inputPanel.add(attachButton, BorderLayout.WEST);
         inputPanel.add(sendButton, BorderLayout.EAST);
 
         setLayout(new BorderLayout());
@@ -66,6 +86,7 @@ public class ChatForm extends JFrame implements Client.MessageListener {
 
         sendButton.addActionListener(e -> sendMessage());
         inputField.addActionListener(e -> sendMessage());
+
         setVisible(true);
     }
 
@@ -126,6 +147,89 @@ public class ChatForm extends JFrame implements Client.MessageListener {
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
+    }
+
+    private void addImageBubble(String sender, ImageIcon imageIcon) {
+        String timestamp = new SimpleDateFormat("HH:mm").format(new Date());
+
+        Image img = imageIcon.getImage();
+        Image smallImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+        ImageIcon smallImageIcon = new ImageIcon(smallImg);
+
+        JLabel imageLabel = new JLabel(smallImageIcon);
+        imageLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        imageLabel.setToolTipText("Click to view full image");
+
+        imageLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                JDialog dialog = new JDialog(ChatForm.this, "Image Preview", true);
+                dialog.setLayout(new BorderLayout());
+
+                ImageIcon fullImageIcon = new ImageIcon(imageIcon.getImage());
+                JLabel fullImageLabel = new JLabel(fullImageIcon);
+                fullImageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+                int imageWidth = fullImageIcon.getIconWidth();
+                int imageHeight = fullImageIcon.getIconHeight();
+
+                int maxWidth = 800;
+                int maxHeight = 600;
+
+                double scale = 1.0;
+
+                if (imageWidth > maxWidth || imageHeight > maxHeight) {
+                    scale = Math.min((double) maxWidth / imageWidth, (double) maxHeight / imageHeight);
+                }
+
+
+                imageWidth = (int) (imageWidth * scale);
+                imageHeight = (int) (imageHeight * scale);
+
+                dialog.setSize(imageWidth + 20, imageHeight + 20);
+                dialog.add(new JScrollPane(fullImageLabel), BorderLayout.CENTER);
+                dialog.setLocationRelativeTo(ChatForm.this);
+                dialog.setVisible(true);
+            }
+        });
+
+        JLabel senderAndTimestamp = new JLabel("<html><div style='width:200px;'><strong>" + sender + " - " + timestamp + "</strong></div></html>");
+        senderAndTimestamp.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        senderAndTimestamp.setForeground(new Color(100, 100, 100));
+
+
+        JPanel bubble = new JPanel();
+        bubble.setBackground(new Color(220, 220, 220));
+        bubble.setOpaque(false);
+        bubble.add(imageLabel);
+
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setBackground(Color.WHITE);
+        wrapper.add(bubble);
+        wrapper.add(senderAndTimestamp);
+
+        chatPanel.add(wrapper);
+        chatPanel.add(Box.createVerticalStrut(4));
+
+        chatPanel.revalidate();
+        chatPanel.repaint();
+
+        SwingUtilities.invokeLater(() -> {
+            JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
+            verticalScrollBar.setValue(verticalScrollBar.getMaximum());
+        });
+    }
+
+    private void showAttachDialog() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Images", "jpg", "jpeg", "png", "gif"));
+        int returnValue = fileChooser.showOpenDialog(this);
+
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            ImageIcon imageIcon = new ImageIcon(selectedFile.getAbsolutePath());
+            addImageBubble(userName, imageIcon);
+        }
     }
 
 }

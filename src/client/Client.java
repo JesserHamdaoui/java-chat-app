@@ -8,7 +8,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Scanner;
 
-import gui.ChatForm;
 import io.github.cdimascio.dotenv.Dotenv;
 
 public class Client {
