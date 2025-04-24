@@ -9,5 +9,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="chat-app-lib" level="project" />
+    <orderEntry type="library" name="dotenv-java-2.3.0" level="project" />
   </component>
 </module>
