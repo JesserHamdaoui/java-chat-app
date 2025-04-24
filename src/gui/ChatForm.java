@@ -100,9 +100,9 @@ public class ChatForm extends JFrame implements Client.MessageListener {
         JPanel bubble = new JPanel();
         bubble.setLayout(new BoxLayout(bubble, BoxLayout.Y_AXIS));
         bubble.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        bubble.setBackground(isCurrentUser ? new Color(0, 102, 204) : new Color(220, 220, 220));
+        bubble.setBackground(isCurrentUser ? new Color(0, 102, 204) : sender.equals("[SERVER]")? new Color(119, 191, 107) : new Color(220, 220, 220));
 
-        // Message text
+        // server.Message text
         JLabel textLabel = new JLabel("<html><div style='width: 200px; color: " +
                 (isCurrentUser ? "white" : "black") + ";'>" + message + "</div></html>");
         textLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));

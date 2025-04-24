@@ -13,8 +13,10 @@ public class Client {
     private static final String SERVER_ADDRESS = dotenv.get("SERVER_URL");
     private static final int SERVER_PORT = 1234;
 
+    final int userId;
     final String username;
     private final Socket socket;
+    private final DataOutputStream dos;
     private final BufferedReader reader;
     private final BufferedWriter writer;
     private MessageListener messageListener;
@@ -24,18 +26,19 @@ public class Client {
     }
 
     public Client(String username, String password) throws AuthenticationException, IOException {
-        authenticate(username, password);
+        this.userId = authenticate(username, password);
         this.username = username;
 
         this.socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+        this.dos = new DataOutputStream(socket.getOutputStream());
         this.writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        sendUsernameToServer();
+        sendUserToServer();
     }
 
-    private void authenticate(String username, String password) throws AuthenticationException {
-        final String query = "SELECT 1 FROM users WHERE username = ? AND password = ?";
+    private int authenticate(String username, String password) throws AuthenticationException {
+        final String query = "SELECT * FROM users WHERE username = ? AND password = ?";
 
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -46,6 +49,8 @@ public class Client {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (!rs.next()) {
                     throw new AuthenticationException("Invalid credentials");
+                } else {
+                    return rs.getInt("id");
                 }
             }
         } catch (SQLException e) {
@@ -53,10 +58,10 @@ public class Client {
         }
     }
 
-    private void sendUsernameToServer() throws IOException {
-        writer.write(username);
-        writer.newLine();
-        writer.flush();
+    private void sendUserToServer() throws IOException {
+        dos.writeInt(this.userId);
+        dos.writeUTF(this.username);
+        dos.flush();
     }
 
     public void sendMessage(String message) throws IOException {

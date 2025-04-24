@@ -2,36 +2,34 @@ package server;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ClientHandler implements Runnable {
-    private static final List<ClientHandler> clients = new ArrayList<>();
-
     private final Socket socket;
+    private final int userId;
     private final String username;
     private final BufferedWriter writer;
     private final BufferedReader reader;
+    private final Conversation conversation;
 
-    public ClientHandler(Socket socket) throws IOException {
+    public ClientHandler(Socket socket, int userId, String username, Conversation conversation) throws IOException {
         this.socket = socket;
+        this.userId = userId;
+        this.username = username;
         this.writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        this.username = reader.readLine();
+        this.conversation = conversation;
 
-        synchronized (clients) {
-            clients.add(this);
-        }
-        broadcastSystemMessage(username + " has joined");
+        conversation.join(this);
     }
 
     @Override
     public void run() {
         try {
-            while (socket.isConnected()) {
-                String message = reader.readLine();
-                if (message == null) break;
-                broadcastMessage(username + ": " + message);
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Message msg = new Message(userId, username, line);
+                conversation.broadcastUserMessage(msg);
             }
         } catch (IOException e) {
             System.err.println("Client error: " + e.getMessage());
@@ -40,36 +38,34 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void broadcastMessage(String message) {
-        synchronized (clients) {
-            clients.forEach(client -> {
-                try {
-                    client.writer.write(message);
-                    client.writer.newLine();
-                    client.writer.flush();
-                } catch (IOException e) {
-                    System.err.println("Broadcast failed for " + client.username);
-                }
-            });
+    public String getUsername() {
+        return username;
+    }
+
+    public void sendMessage(String text) {
+        try {
+            writer.write(text);
+            writer.newLine();
+            writer.flush();
+        } catch (IOException e) {
+            System.err.println("Failed to send message to " + username + ": " + e.getMessage());
         }
     }
 
-    private void broadcastSystemMessage(String message) {
-        broadcastMessage("[SERVER]: " + message);
+    public void sendHistory(List<Message> history) {
+        for (Message msg : history) {
+            sendMessage(String.format("%s: %s", msg.getUsername(), msg.getContent()));
+        }
     }
 
     private void closeResources() {
-        synchronized (clients) {
-            clients.remove(this);
-        }
-        broadcastSystemMessage(username + " has left");
-
+        conversation.leave(this);
         try {
-            if (writer != null) writer.close();
-            if (reader != null) reader.close();
-            if (socket != null) socket.close();
+            reader.close();
+            writer.close();
+            socket.close();
         } catch (IOException e) {
-            System.err.println("Error closing client resources: " + e.getMessage());
+            System.err.println("Error closing resources for " + username + ": " + e.getMessage());
         }
     }
 }
