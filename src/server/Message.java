@@ -19,36 +19,12 @@ public class Message {
         this.timestamp = resultSet.getTimestamp("timestamp").toLocalDateTime();
     }
 
-    public Message(int userId, String username, String content) {
+    public Message(int messageId, int userId, String username, String content, LocalDateTime timestamp) {
+        this.messageId = messageId;
         this.userId = userId;
         this.username = username;
         this.content = content;
-        this.timestamp = LocalDateTime.now();
-
-        Dotenv dotenv = Dotenv.load();
-
-        String query = "INSERT INTO messages(conversation_id, user_id, content, created_at) VALUES(?, ?, ?, ?);";
-        try (Connection conn = DriverManager.getConnection(dotenv.get("DB_URL"), dotenv.get("DB_USER"), dotenv.get("DB_PASS"));
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, 1);
-            stmt.setInt(2, userId);
-            stmt.setString(3, content);
-            stmt.setTimestamp(4, Timestamp.valueOf(timestamp));
-            ResultSet rs = stmt.executeQuery();
-
-            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    this.messageId = generatedKeys.getInt(1);
-                } else {
-                    throw new SQLException("Creating message failed, no ID obtained.");
-                }
-            }
-
-        } catch (SQLException e) {
-            System.out.println("Error: id: " + userId + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Error: id: " + userId + e.getMessage());
-        }
+        this.timestamp = timestamp;
     }
 
     public int getMessageId() {

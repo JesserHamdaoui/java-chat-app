@@ -3,15 +3,30 @@ package client;
 import java.io.*;
 import java.net.Socket;
 import java.sql.*;
+
+import database.DBCredentials;
+import database.DatabaseManager;
 import io.github.cdimascio.dotenv.Dotenv;
 
 public class Client {
-    private static final Dotenv dotenv = Dotenv.load();
-    private static final String DB_URL = dotenv.get("DB_URL");
-    private static final String DB_USER = dotenv.get("DB_USER");
-    private static final String DB_PASS = dotenv.get("DB_PASS");
-    private static final String SERVER_ADDRESS = dotenv.get("SERVER_URL");
+    private static String SERVER_ADDRESS;
     private static final int SERVER_PORT = 1234;
+
+    static {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("secrets.ser"))) {
+            DBCredentials credentials = (DBCredentials) ois.readObject();
+            // Set credentials for database access
+            DatabaseManager.setCredentials(
+                    credentials.getDbUrl(),
+                    credentials.getDbUser(),
+                    credentials.getDbPass()
+            );
+            SERVER_ADDRESS = credentials.getServerAddress();
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error reading configuration: " + e.getMessage());
+            SERVER_ADDRESS = "localhost"; // Fallback
+        }
+    }
 
     final int userId;
     final String username;
@@ -38,23 +53,10 @@ public class Client {
     }
 
     private int authenticate(String username, String password) throws AuthenticationException {
-        final String query = "SELECT * FROM users WHERE username = ? AND password = ?";
-
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-
-            stmt.setString(1, username);
-            stmt.setString(2, password);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (!rs.next()) {
-                    throw new AuthenticationException("Invalid credentials");
-                } else {
-                    return rs.getInt("id");
-                }
-            }
+        try {
+            return DatabaseManager.authenticateUser(username, password);
         } catch (SQLException e) {
-            throw new AuthenticationException("Database error: " + e.getMessage());
+            throw new AuthenticationException("Authentication failed: " + e.getMessage());
         }
     }
 

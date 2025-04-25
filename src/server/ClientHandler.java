@@ -1,7 +1,10 @@
 package server;
 
+import database.DatabaseManager;
+
 import java.io.*;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.List;
 
 public class ClientHandler implements Runnable {
@@ -28,8 +31,17 @@ public class ClientHandler implements Runnable {
         try {
             String line;
             while ((line = reader.readLine()) != null) {
-                Message msg = new Message(userId, username, line);
-                conversation.broadcastUserMessage(msg);
+                try {
+                    Message msg = DatabaseManager.saveMessage(
+                            1,
+                            userId,
+                            username,
+                            line
+                    );
+                    conversation.broadcastUserMessage(msg);
+                } catch (SQLException e) {
+                    System.err.println("Failed to save message: " + e.getMessage());
+                }
             }
         } catch (IOException e) {
             System.err.println("Client error: " + e.getMessage());
